@@ -52,16 +52,27 @@ function isgcdeqone(f::Polynomial{T}, p::T, n::T) where T <: Integer
     return true
 end
 
+function isirreducible(f::Polynomial{T}, p::T) where T <: Integer
+    # 获取多项式的次数
+    n = degree(f)
+    # 所有一次多项式都是不可约多项式
+    n == 1 && return true
+    # 构造首一多项式, 所有不可约多项式的乘积 x^(p^n) - x 
+    coeg = zeros(T, p^n+1)
+    coeg[2], coeg[end] = -1, 1
+    g = Polynomial(coeg)
+    # condition 1: f(x) | x^(p^n) - x
+    # condition 2: for all c in GF(P), f(c) != 0
+    # condition 3: for all ni in {n/p1, n/p2, ..., n/pt}, gcd(x^{q^ni-1}-1, f(x)) = 1
+    isdivided(g, f, p) && all(rem.(f.(0:p-1), p) .!= 0) && isgcdeqone(f, p, n) && return true
+    return false
+end
+
 function get_n_irrepoly_Fp(p::T, n::T) where T <: Integer
     # 有限域 GF(p^n) 中 p 必须是素数
     !isprime(p) && throw(DomainError(p, "Characteristic is not prime in GF(p)"))
-
     # 保存所有 n 次不可约多项式
     irrepoly = Polynomial{T}[]
-    # construct 首一多项式, 所有不可约多项式的乘积 x^(p^n) - x 
-    coef = zeros(T, p^n+1)
-    coef[2], coef[end] = -1, 1
-    f = Polynomial(coef)
 
     for k = p^n:2*p^n-1
         # n 次首一多项式的系数的 p 进制表示
@@ -69,9 +80,42 @@ function get_n_irrepoly_Fp(p::T, n::T) where T <: Integer
         # 将 p 进制转化为系数向量
         coeg = reverse(parse.(Int64, split(padic, "")))
         g = Polynomial(coeg)
+        println(g)
+        isirreducible(g, p) && push!(irrepoly, g)
+    end
+    return irrepoly
+end
+
+# 验证是否为本原多项式比不可约多项式多的一个条件
+# f(x) 不能整除 x^{(q^n-1)/t} - 1
+function isprimitive(f::Polynomial{T}, p::T, n::T) where T <: Integer
+    factors = factor(Set, p^n - 1)
+    for t in factors
+        deg = div(p^n - 1, t)
+        coeg = zeros(T, deg)
+        coeg[1], coeg[end] = -1, 1
+        g = Polynomial(coeg)
+        isdivided(g, f, p) && return false
+    end
+    return true
+end
+
+function get_n_pripoly_Fp(p::T, n::T) where T <: Integer
+    # 有限域 GF(p^n) 中 p 必须是素数
+    !isprime(p) && throw(DomainError(p, "Characteristic is not prime in GF(p)"))
+
+    # 保存所有 n 次不可约多项式
+    pripoly = Polynomial{T}[]
+    coef = zeros(T, p^n+1)
+    coef[2], coef[end] = -1, 1
+    f = Polynomial(coef)
+
+    for k = p^n:2*p^n-1
+        padic = string(k, base=p)
+        coeg = reverse(parse.(Int64, split(padic, "")))
+        g = Polynomial(coeg)
         if n == 1
-            # 一次多项式都是不可约多项式
-            push!(irrepoly, g)
+            push!(pripoly, g)
             continue
         end
         # g(x) | x^(p^n) - x
@@ -79,8 +123,9 @@ function get_n_irrepoly_Fp(p::T, n::T) where T <: Integer
         # for all c in GF(P), g(c) != 0
         any(rem.(g.(0:p-1), p) .== 0) && continue
         # for all ni in {n/p1, n/p2, ..., n/pt}, gcd(x^{q^ni-1}-1, f(x)) = 1
-        isgcdeqone(g, p, n) && push!(irrepoly, g)
+        !isgcdeqone(g, p, n) && continue
+        isprimitive(g, p, n) && push!(pripoly, g)
     end
-    return irrepoly
+    return pripoly
 end
 
