@@ -36,19 +36,36 @@ struct GFPoly{p}
         new{p}(coeff)
     end
 end
+
+function showterm(io::IO, ai, show_plus::Bool)
+    if show_plus
+        print(io, " + " , ai == 1 ? "" : string(ai), "x")
+    else
+        print(io, ai == 1 ? "" : string(ai), "x")
+    end
+end
+function showterm(io::IO, ai, i::Int, show_plus::Bool=true)
+    if show_plus
+        print(io, " + " , ai == 1 ? "" : string(ai), "x^$(i)")
+    else
+        print(io, ai == 1 ? "" : string(ai), "x^$(i)")
+    end
+end
 # Set the output of GFPoly when printing
 function Base.show(io::IO, f::GFPoly{p}) where p
-    @inbounds for (i, ai) in enumerate(f.coeff)
-        if ai > 0
+    show_plus = false   # the first non-zero coefficient not show +
+    for (i, ai) in enumerate(f.coeff)
+        if ai == 0
+            continue
+        else
             if i == 1
                 print(io, ai)   # print constant
             elseif i == 2
-                print(io, " + " , ai == 1 ? "" : string(ai), "x")
+                showterm(io, ai, show_plus)
             else
-                print(io, " + " , ai == 1 ? "" : string(ai), "x^$(i-1)")
+                showterm(io, ai, i-1, show_plus)
             end
-        else
-            continue
+            show_plus = true    # the following coefficients should be printed with +
         end
     end
 end
