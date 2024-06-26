@@ -15,7 +15,7 @@ end
 
 function isirreducible(f::GFPoly{p}) where p
     n = deg(f)  # the degree of f
-    for i = 1:ceil(Int, n / 2)
+    for i = 1:floor(Int, n / 2)
         g_coeff = zeros(GF{p}, p^i+1)
         g_coeff[2], g_coeff[end] = GF{p}(-1), GF{p}(1)
         g = GFPoly{p}(g_coeff)
@@ -37,7 +37,7 @@ function isprimitive(f::GFPoly{p}) where p
         g_coeff = zeros(GF{p}, div(p^n - 1, t)+1)
         g_coeff[1], g_coeff[end] = GF{p}(-1), GF{p}(1)
         g = GFPoly{p}(g_coeff)
-        deg(rem(g, f)) == 0 && return false
+        iszero(rem(g, f)) && return false
     end
     return true
 end
