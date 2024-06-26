@@ -2,12 +2,12 @@ using Primes
 
 # Galois Field GF(p) where p is a prime
 struct GF{p} <: Integer
-    x::UInt64
+    x::Int64
     # generate an element in Galois Field GF(p)
     function GF{p}(x) where {p}
         !isprime(p) && throw(DomainError(p, "Characteristic is not prime in PrimeField(p)"))
         # allow x is a negative integer, so d may be negative
-        d = convert(UInt64, ((x % p) + p) % p)
+        d = convert(Int64, ((x % p) + p) % p)
         new{p}(d)
     end
 end
